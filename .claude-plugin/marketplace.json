@@ -1,0 +1,17 @@
+{
+  "name": "axe-method",
+  "owner": {
+    "name": "Best Quality Engineering"
+  },
+  "metadata": {
+    "description": "AXE: Product-Driven Development — Start with what you want."
+  },
+  "plugins": [
+    {
+      "name": "axe-method",
+      "description": "AXE: Product-Driven Development — Start with what you want.",
+      "source": "./",
+      "version": "1.0.0"
+    }
+  ]
+}

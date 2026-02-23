@@ -1,0 +1,13 @@
+{
+  "name": "axe-method",
+  "version": "1.0.0",
+  "description": "AXE: Product-Driven Development — Start with what you want.",
+  "author": {
+    "name": "Best Quality Engineering",
+    "url": "https://github.com/Best-Quality-Engineering"
+  },
+  "homepage": "https://github.com/Best-Quality-Engineering/axe-method",
+  "repository": "https://github.com/Best-Quality-Engineering/axe-method",
+  "license": "MIT",
+  "keywords": ["specifications", "tdd", "ddd", "clean-code", "ioc", "di", "refactoring", "product-driven", "pdd", "spec-driven", "axe"]
+}
