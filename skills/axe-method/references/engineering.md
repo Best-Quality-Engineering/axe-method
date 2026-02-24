@@ -163,6 +163,21 @@ Is this the intended platform split?"
 - **"What is shared across platforms?"** — Options: All views / Models + logic only / Nothing / Let me list
 - **"What conditional compilation is needed?"** — Present discovered #if blocks, confirm or correct
 
+## Cross-References
+
+Engineering specs don't exist in isolation. These are the key intersection points with Experience and Architecture:
+
+| When you specify... | Coordinate with Experience on... | Coordinate with Architecture on... |
+|--------------------|----------------------------------|-----------------------------------|
+| Protocols and wire formats | Whether protocol choices support the Experience's real-time, offline, or sync requirements | Whether protocols align with the seams defined in Architecture; do they respect boundary crossing rules? |
+| APIs and endpoints | Whether the API surface supports all Experience behaviors; are there capabilities with no API backing? | Whether endpoints respect bounded context ownership; does one context's API leak another context's data? |
+| UI implementation | Whether the rendering mechanics deliver the Experience spec's behavioral intent (feedback, transitions, affordances) | Whether UI components respect Architecture's component boundaries and layer structure |
+| Data structures | Whether data models support Experience's state and transition requirements | Whether models align with Architecture's aggregate boundaries and consistency rules |
+| Testing infrastructure | Whether test types cover all Experience behaviors at every applicable level | Whether test boundaries align with Architecture's seam and component structure |
+| Platform-specific implementation | Whether platform-specific code delivers the Experience's platform adaptation requirements | Whether platform splits respect Architecture's decomposition; do platform-specific components violate layer rules? |
+
+Flag these intersections explicitly when you encounter them. Don't assume the Experience or Architecture specifier will discover them independently.
+
 ## Classification Guard
 
 Watch for concerns that belong in sibling spec types:
@@ -174,6 +189,15 @@ Watch for concerns that belong in sibling spec types:
 | "It should feel smooth and responsive" | That's Experience — here we specify the prefetch strategy, frame budget, async loading that achieves it |
 
 Say: *"That's the 'what' — let's capture it in the Experience spec. Here we'll specify the 'how' that makes it happen."*
+
+### Ambiguous Cases
+
+When you're unsure whether something is Engineering or belongs elsewhere, use this decision framework:
+
+1. **"Is this only one way to implement a behavior?"** → Engineering. *"Use WebSocket for real-time updates"* is a protocol choice — Engineering. Another team might use SSE and deliver the same Experience.
+2. **"Does this describe what the product can do, not how?"** → Experience. *"Content updates appear in real time"* is the capability — Experience. The WebSocket implementation is Engineering.
+3. **"Does this change which parts exist or how they connect?"** → Architecture. *"Real-time updates flow through a dedicated event bus"* is a structural decision — Architecture. How the event bus is implemented is Engineering.
+4. **"Does this span the boundary?"** → Split it. The implementation detail stays in Engineering, the behavior it delivers goes in Experience, and any structural implication goes in Architecture. Example: *"The app should work offline"* — the capability is Experience, the sync architecture (what caches where, conflict resolution strategy) is Architecture, and the specific caching library and sync protocol are Engineering.
 
 ## Phase 3: Draft Output
 

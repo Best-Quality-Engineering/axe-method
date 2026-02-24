@@ -190,6 +190,21 @@ Is this the intended threading model?"
 - **"What must run on the main thread?"** — Options: UI updates only / UI + state observation / Everything except network / Let me specify
 - **"What concurrency rules apply?"** — Options: Strict actor isolation / Sendable everywhere / Pragmatic (some shared mutable state) / Let me explain
 
+## Cross-References
+
+Architecture specs don't exist in isolation. These are the key intersection points with Experience and Engineering:
+
+| When you specify... | Coordinate with Experience on... | Coordinate with Engineering on... |
+|--------------------|---------------------------------|----------------------------------|
+| Bounded contexts and decomposition | Which product capabilities each context supports; does the decomposition align with how users think about the product? | Which protocols implement communication across context boundaries |
+| Seams and crossing points | Whether seam decisions constrain Experience behaviors (e.g., does a seam prevent real-time updates the Experience requires?) | Which wire formats, APIs, and protocols implement each crossing point |
+| State distribution | Which states are user-observable; does the state flow support the Experience's feedback requirements? | How state is persisted, propagated, and synchronized in implementation |
+| Threading model | Whether threading decisions affect perceived responsiveness or create observable delays | Actor isolation, dispatch queues, async/await implementation |
+| Composition rules | Whether swappability requirements align with Experience's platform adaptation needs | Dependency injection containers, factory implementations, composition root code |
+| Layer boundaries | Whether layer structure supports the Experience's lifecycle and system event requirements | Import rules, module boundaries, build target organization |
+
+Flag these intersections explicitly when you encounter them. Don't assume the Experience or Engineering specifier will discover them independently.
+
 ## Classification Guard
 
 Watch for concerns that belong in sibling spec types:
@@ -202,6 +217,15 @@ Watch for concerns that belong in sibling spec types:
 | "A vertical slider with haptic feedback" | That's Engineering (UI implementation) — here we care about how volume state flows between components |
 
 Say: *"Good — let's capture the structural decision here and the implementation detail in the Engineering spec."*
+
+### Ambiguous Cases
+
+When you're unsure whether something is Architecture or belongs elsewhere, use this decision framework:
+
+1. **"Does this change which parts exist or how they communicate?"** → Architecture. *"Recommendations should be independent of playback"* is a boundary decision — Architecture.
+2. **"Does this change only how one part works internally?"** → Engineering. *"Use a B-tree index for playlist lookup"* is internal to one component — Engineering.
+3. **"Does this describe what the product can do or how users experience it?"** → Experience. *"Users can get personalized recommendations"* is a capability — Experience. How the recommendation system is decomposed is Architecture.
+4. **"Does this span the boundary?"** → Split it. The structural decision goes in Architecture, the capability it enables goes in Experience, and the internal implementation goes in Engineering. Example: *"The system should handle 10,000 concurrent listeners"* — the scalability requirement is Experience, the decomposition into stateless services is Architecture, and the load balancer configuration is Engineering.
 
 ## Phase 3: Draft Output
 

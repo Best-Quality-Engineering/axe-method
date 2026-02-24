@@ -347,6 +347,30 @@ Throughout the exploration, watch for implementation details leaking into Experi
 
 Say: *"That's a great detail — let's capture the behavior here and the implementation in the Engineering spec."*
 
+### Ambiguous Cases
+
+Real cases aren't always clear-cut. When you're unsure whether something is Experience or belongs elsewhere, use this decision framework:
+
+1. **"Does this describe what the user experiences — an observable outcome, capability, or requirement?"** → Experience. *"Search results appear instantly"* is Experience (observable outcome). The performance budget that achieves it is Engineering.
+2. **"Does this describe how we build it — a specific technique, value, or mechanism?"** → Engineering. *"44pt touch target"* is Engineering. The accessibility requirement it fulfills (*"All interactive elements are accessible"*) is Experience.
+3. **"Does this describe what parts exist or how they connect?"** → Architecture. *"Search and playback are independent systems"* is Architecture. What search makes possible is Experience.
+4. **"Does this span the boundary?"** → Split it. State the requirement or principle in Experience, the specific value or technique in Engineering, and the structural implication in Architecture. Example: *"Animations respect Reduce Motion preference"* — the requirement is Experience, the preference-checking API is Engineering, and whether motion preferences cross component boundaries is Architecture.
+
+## Cross-References
+
+Experience specs don't exist in isolation. These are the key intersection points with Architecture and Engineering:
+
+| When you specify... | Coordinate with Architecture on... | Coordinate with Engineering on... |
+|--------------------|------------------------------------|----------------------------------|
+| Product capabilities | Which bounded contexts support each capability; how the system decomposes to deliver it | Which protocols, APIs, and UI controls implement it |
+| Accessibility requirements | Whether seams constrain assistive technology support (e.g., can screen reader data cross component boundaries?) | Specific accessibility label text, Dynamic Type implementation, contrast ratio values |
+| Localization requirements | Whether bounded contexts need locale-aware boundaries or shared localization infrastructure | String catalog structure, formatter configurations, RTL layout implementation |
+| Platform adaptations | Whether architecture differs per platform (shared core vs. platform-specific components) | Platform-specific controls, conditional compilation, framework choices |
+| Product lifecycle behaviors | State distribution during lifecycle transitions; which components participate in background operations | App lifecycle API usage, background task registration, migration code |
+| System event responses | Which components observe which events; event propagation across seams | Notification observer implementation, connectivity monitoring APIs |
+
+Flag these intersections explicitly when you encounter them. Don't assume the Architecture or Engineering specifier will discover them independently.
+
 ## Phase 3: Draft Output
 
 After exploration, produce a draft Experience spec:

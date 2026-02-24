@@ -86,6 +86,8 @@ The AXE cycle maps directly to building construction — and the metaphor is not
 
 The construction agent doesn't design — it constructs. It reads the specifications, breaks the work into tasks, sequences them correctly, and delivers. When the output doesn't match the specs, the question is whether the specs were unclear (refine in next Specify) or the construction was wrong (fix in Construction).
 
+**Spec ownership is exclusive.** Each specifier agent owns the spec files in its domain directory (`Documents/Specifications/{Experience|Architecture|Engineering}/`). It is responsible for creating, updating, and organizing those specs across every cycle. No other agent writes to another specifier's directory. The construction agent reads specs — it does not edit them. The inspector agent reports findings — it does not edit specs. When Inspection findings require spec changes, the appropriate specifier agent makes those changes.
+
 In building construction, engineering specs don't just describe *what* to build — they specify *with what*. Materials, methods, tools: "14-gauge copper wire, run in EMT conduit" not just "install electrical." The software equivalent is the **toolchain** — build systems, test runners, package managers, linters, formatters, CI/CD pipelines. These are the materials and tools the construction agent needs to execute the specs. A construction agent that doesn't know the toolchain is a crew that shows up without tools.
 
 ### Experience Defines The Value

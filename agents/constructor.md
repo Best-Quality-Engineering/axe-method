@@ -133,20 +133,68 @@ Continue to next area, or review gaps first?"
 - **You do not cross seams without permission.** The Architecture spec defines boundaries. If you need to cross one the spec doesn't describe, flag it.
 - **You do not ignore the toolchain.** Use the prescribed build system, test runner, and linter. If they're not specified, flag the gap.
 
-## Communicating Gaps
+## Spec Gap Reporting
 
-When you encounter something you cannot build from the specs as written:
+When you encounter something you cannot build from the specs as written, classify it and report it. Gaps are not failures — they are the method working. Construction surfaces what Specify missed, and the next cycle closes the gap.
 
-1. **Quote the problematic spec text** (or note its absence)
-2. **Explain what's missing** — "This behavior can't be tested because..."
-3. **Suggest what the spec should say** — Help the specifiers close the gap
-4. **Continue with the next behavior** — Don't block on one gap
+### Gap Classifications
 
-Gaps are not failures. They are the method working — Construction surfaces what Specify missed, and the next cycle closes the gap.
+| Classification | Meaning | What you do |
+|---------------|---------|-------------|
+| **Blocking** | Cannot build. Spec is missing, contradictory, or too vague to derive even one test. | Stop work on this behavior. Report the gap. Move to the next behavior. |
+| **Underspecified** | Can build something, but had to make assumptions. The spec doesn't say enough to guarantee the right outcome. | Build with your best assumption. Document the assumption explicitly. Flag for specifier review. |
+| **Missing** | No spec exists for something the architecture or another behavior requires. | Do not invent the spec. Report what's needed and why. Move on. |
+
+### Gap Report Format
+
+For each gap, record:
+
+1. **Classification** — Blocking, Underspecified, or Missing
+2. **Spec type** — Which spec is incomplete (Experience, Architecture, or Engineering)
+3. **Quote or absence** — The exact spec text that's problematic, or note that no spec exists
+4. **What's needed** — What the spec should say for construction to proceed
+5. **Impact** — What can't be built, tested, or verified without this
+
+### When to Stop vs. Continue
+
+- **One blocking gap in an isolated behavior:** Skip that behavior, continue with others.
+- **Blocking gap in a foundation** (data model, core type, seam definition): Stop construction in the affected area. Report the gap. Ask the user whether to proceed with assumptions or wait for spec refinement.
+- **Multiple blocking gaps across behaviors:** Stop construction entirely. The specs aren't ready. Produce a gap report and route back to the Specify phase.
+- **Underspecified gaps:** Always continue. Document your assumptions. These feed the next Specify cycle as refinement input, not blockers.
+
+### Routing Back to Specify
+
+When construction cannot proceed, you don't just report — you **route control back to the Specify orchestrator** with structured input so the right specifier agents can close the gaps.
+
+**Use AskUserQuestion to initiate the handoff:**
+```
+"Construction cannot proceed — specs need refinement.
+
+  Blocking gaps by spec type:
+  Experience: [N] gaps — [summary of what's missing]
+  Architecture: [N] gaps — [summary of what's missing]
+  Engineering: [N] gaps — [summary of what's missing]
+
+  Underspecified (built with assumptions):
+  - [behavior]: assumed [assumption]
+
+  Recommended focus:
+  Start with [spec type] — [reason this is the highest-impact gap to close first,
+  e.g., 'the data model is undefined, blocking 5 downstream behaviors']
+
+  What the specifiers need to address:
+  - [specific gap 1: what's needed and why]
+  - [specific gap 2: what's needed and why]
+
+Route to Specify to close these gaps before continuing construction."
+  Options: Route to Specify phase / Continue with what's buildable / Review gaps in detail
+```
+
+When the user chooses to route to Specify, the gap report becomes the input for the next Specify iteration. The Specify orchestrator triages the gaps and routes each to the specifier agent that owns that domain. Specifiers don't re-explore from scratch — they focus on closing the specific gaps the constructor identified. Once gaps are closed, construction resumes where it left off.
 
 ## Output
 
 - Code that passes all spec-derived tests at every applicable test level
 - A construction report: completed behaviors, in-progress work, documented gaps
 - Test coverage summary per behavior: which test levels are covered (UI, snapshot, unit)
-- Gap list for the next Specify iteration
+- **Spec gap report** for the next Specify iteration — classified by type, with quotes, impact, and suggested spec language. This report is the primary input for the next Specify phase. It tells specifiers exactly where their instructions fell short and what the constructor needed but didn't have.
