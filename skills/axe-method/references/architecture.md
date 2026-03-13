@@ -22,14 +22,16 @@ Before asking questions, use agent tools to find what already exists.
 - Layer structure — how imports flow, what depends on what
 - Threading patterns — main thread annotations, async/await, dispatch queues, actors
 
-**Use AskUserQuestion to present findings:**
+**Use AskUserQuestion to present findings (assertion-based — state your conclusion, let them correct):**
 ```
 "I found these structural boundaries in the codebase:
   - [list of modules/packages/targets]
   - [potential bounded contexts]
   - [dependency direction observed]
 
-Is this the intended architecture?"
+Based on this, the architecture appears to be [your conclusion with reasoning].
+
+Is this assessment correct?"
   Options: Yes, that's the structure / It needs changes / Let me describe the architecture
 ```
 
@@ -45,68 +47,90 @@ If `/axe-method:specify` has already established the domain, skip this. Otherwis
 
 Work through each area using discovery and structured questions.
 
+### 0. Constitutional Compliance Check
+
+Before exploring structure, check whether a Constitution exists (e.g., `Documents/Specifications/constitution/` or a project-level constitution file). If it does, read it. The Constitution defines invariants that the architecture must satisfy — non-negotiable constraints that override exploratory conclusions. Reference specific constitutional rules (e.g., "per Constitution rule C-003") when they constrain an architectural decision.
+
+If no Constitution exists, note this and proceed.
+
 ### 1. System Structure and Bounded Contexts
 
 **Discover first:** Use Glob/Grep to find module definitions, package manifests, target configurations, top-level directories that imply subsystems. Look for natural domain boundaries — areas where the ubiquitous language shifts or where models diverge.
 
-**Use AskUserQuestion:**
-```
-"I found these structural boundaries in the codebase:
-  - [subsystem/module A]: owns [domain concepts]
-  - [subsystem/module B]: owns [domain concepts]
+**Event Storming — discover contexts through events:** Trace the key domain events through the system. For each event (e.g., "player discovered", "track changed", "volume adjusted"), identify which context produces it and which contexts consume it. Events that flow between modules reveal natural bounded context boundaries. Events that stay within a module confirm cohesion.
 
-Do these represent distinct bounded contexts?"
-  Options: Yes, those are the right boundaries / Some should be merged / Some need splitting / Let me describe the domain decomposition
+**Use AskUserQuestion (assertion-based):**
+```
+"Based on the code structure and event flow, I see these bounded contexts:
+  - [context A]: owns [domain concepts], produces [events], consumes [events]
+  - [context B]: owns [domain concepts], produces [events], consumes [events]
+
+I'm assuming [stated assumption about why these are separate contexts].
+
+Does this decomposition match your intent?"
+  Options: Yes / Some should be merged / Some need splitting / The assumption is wrong — let me explain
 ```
 
 For each bounded context, confirm:
 - **What subdomain does it serve?** — What part of the domain has its own language and rules?
 - **What does it own exclusively?** — What concepts, state, and behavior belong to it and nothing else?
 - **What is its relationship to the Experience?** — What product capabilities does this context support?
+- **What are we assuming?** — State each assumption explicitly. Unconfirmed assumptions become `[NEEDS CLARIFICATION]` markers in the draft.
 
 **Context Mapping — Use AskUserQuestion:**
 ```
-"How do these bounded contexts relate to each other?"
-  Options: Shared kernel (common model) / Customer-supplier (one serves the other) / Anti-corruption layer (translate at the boundary) / Separate ways (no integration) / Let me describe each relationship
+"Based on imports and event flow, I believe these contexts relate as:
+  - [A] → [B]: customer-supplier (A serves B because [reasoning])
+  - [A] ↔ [C]: shared kernel ([shared concepts])
+
+Is this correct, or are the relationships different?"
+  Options: Correct / Some relationships are wrong / Let me describe each relationship
 ```
 
 ### 2. Aggregates and Consistency Boundaries
 
 **Discover first:** Use Grep to find entity clusters, transactional boundaries, repository patterns, factory methods that create groups of related objects.
 
-**Use AskUserQuestion:**
+**Use AskUserQuestion (assertion-based):**
 ```
-"I found these entity/model clusters:
-  - [aggregate root A] with [child entities]
-  - [aggregate root B] with [child entities]
+"I found these entity/model clusters and believe these are the consistency boundaries:
+  - [aggregate root A] with [child entities] — I'm assuming [A] owns [invariant] because [reasoning]
+  - [aggregate root B] with [child entities] — I'm assuming [B] controls [invariant] because [reasoning]
 
 Are these the right consistency boundaries?"
-  Options: Yes / Some need different boundaries / Let me describe the aggregates
+  Options: Yes / Some need different boundaries / An assumption is wrong / Let me describe the aggregates
 ```
 
 For each aggregate, confirm:
 - **What is the root?** — What entity controls access to the cluster?
 - **What invariants must it enforce?** — What rules must always hold within this boundary?
 - **What can change independently?** — What is outside this consistency boundary?
+- **What are we assuming?** — Each unconfirmed assumption about ownership or invariants becomes a `[NEEDS CLARIFICATION]` marker.
 
 ### 3. Component Boundaries
 
 **Discover first:** Use Glob/Grep to find module definitions, package manifests, target configurations, top-level directories that imply components.
 
-**Use AskUserQuestion:**
+**Boundary Stress Testing:** For each component boundary you discover, mentally replace the component. Ask: "If we swapped out [component A] for a completely different implementation, what would break?" If the answer is "nothing outside A" — the boundary is clean. If other components would break, the boundary is leaking.
+
+**Use AskUserQuestion (assertion-based):**
 ```
 "I found these component boundaries:
   - [component A]: contains [files/types]
   - [component B]: contains [files/types]
 
+Stress test: If [component A] were replaced, [component B] would [break/not break] because [reasoning].
+I'm assuming [stated assumption about coupling].
+
 Are these the right boundaries?"
-  Options: Yes / Merge some of these / Split some of these / Let me describe the components
+  Options: Yes / Merge some of these / Split some of these / The assumption is wrong / Let me describe the components
 ```
 
 For each component, confirm:
 - **What does it own?** — What data, state, and behavior belongs to it exclusively?
 - **What bounded context does it belong to?** — Or does it span contexts?
 - **What doesn't belong to any component?** — Shared concerns, cross-cutting functionality
+- **What breaks if you replace it?** — If the answer is "too much," the boundary needs work.
 
 ### 4. Seams
 
@@ -114,30 +138,38 @@ The most important architectural decisions.
 
 **Discover first:** Use Grep to find protocol definitions, public API surfaces, import statements that cross module boundaries.
 
-**Use AskUserQuestion for each pair of connected components:**
+**Use AskUserQuestion for each pair of connected components (assertion-based):**
 ```
 "Between [Component A] and [Component B], I found these crossing points:
   - [imports/calls/protocols discovered]
 
-What should cross this seam?"
-  Options: Only what I found / Less than what I found / More is needed / Let me explain
+Based on this, I believe [specific things] should cross this seam and [specific things] should NOT.
+I'm assuming [stated assumption about the boundary contract].
+
+Is this correct?"
+  Options: Correct / Some things shouldn't cross / More needs to cross / The assumption is wrong / Let me explain
 ```
+
+**Negative Requirements:** For each seam, explicitly identify what must NOT cross it. These become AS-NNN rules in the draft (e.g., "AS-012: Implementation details of discovery protocol must not leak into the Player context"). Negative requirements are often more valuable than positive ones — they prevent architectural erosion.
 
 Probe deeper with AskUserQuestion:
 - **"If you replaced [A], what would [B] need to know?"** — Options: Nothing (fully decoupled) / Just the protocol / Some internal types / It would break
 - **"How stable is this seam?"** — Options: Load-bearing (won't change) / Evolving / Likely to change
+- **"What should never cross this seam?"** — Options: Internal state / Implementation types / Threading concerns / Let me specify
 
 ### 5. Layers
 
 **Discover first:** Use Task (Explore) to analyze import graphs — which modules import which, and in what direction.
 
-**Use AskUserQuestion:**
+**Use AskUserQuestion (assertion-based):**
 ```
 "I found this dependency direction:
   - [layer A] → [layer B] → [layer C]
 
-Is this the intended layering?"
-  Options: Yes / The direction should be different / There are more layers / No layers, it's flat
+I'm assuming [layer A] is the outermost (presentation) layer because [reasoning].
+
+Is this layering correct?"
+  Options: Yes / The direction should be different / There are more layers / No layers, it's flat / The assumption is wrong
 ```
 
 If layered:
@@ -147,13 +179,17 @@ If layered:
 
 **Discover first:** Use Grep to find state stores, observable objects, published properties, shared state patterns.
 
-**Use AskUserQuestion:**
+**Use AskUserQuestion (assertion-based):**
 ```
 "I found these state patterns:
   - [observable objects, state stores, etc.]
 
-Where is the source of truth for each piece of state?"
-  Options: Server (remote) / Local (on-device) / Derived (computed) / Let me explain per state
+I believe the source of truth is:
+  - [state X]: [local/remote/derived] because [reasoning]
+  - [state Y]: [local/remote/derived] because [reasoning]
+
+Is this correct?"
+  Options: Yes / Some sources of truth are wrong / Let me explain per state
 ```
 
 For state propagation:
@@ -163,13 +199,15 @@ For state propagation:
 
 **Discover first:** Use Grep to find initialization patterns, factory methods, dependency injection containers, composition roots.
 
-**Use AskUserQuestion:**
+**Use AskUserQuestion (assertion-based):**
 ```
 "I found this composition pattern:
   - [discovered DI/factory/init patterns]
 
-Is this how components should be assembled?"
-  Options: Yes / We should use DI / We should use factories / Let me explain
+I'm assuming this is the intended assembly strategy because [reasoning].
+
+Is this correct?"
+  Options: Yes / We should use DI / We should use factories / The assumption is wrong / Let me explain
 ```
 
 - **"What can be swapped?"** — Options: Everything behind a protocol / Specific components only / Nothing is swappable / Let me list them
@@ -178,13 +216,16 @@ Is this how components should be assembled?"
 
 **Discover first:** Use Grep to find @MainActor, DispatchQueue, Task {}, async/await, actor declarations, thread annotations.
 
-**Use AskUserQuestion:**
+**Use AskUserQuestion (assertion-based):**
 ```
 "I found these threading patterns:
   - [main thread annotations, async patterns, actors]
 
-Is this the intended threading model?"
-  Options: Yes / It needs changes / Let me describe the model
+I believe the threading model is [your conclusion] because [reasoning].
+I'm assuming [stated assumption about isolation boundaries].
+
+Is this correct?"
+  Options: Yes / It needs changes / The assumption is wrong / Let me describe the model
 ```
 
 - **"What must run on the main thread?"** — Options: UI updates only / UI + state observation / Everything except network / Let me specify
@@ -235,11 +276,13 @@ After exploration, produce a draft Architecture spec:
 2. Map context relationships — shared kernels, anti-corruption layers, customer-supplier
 3. Document aggregates and consistency boundaries within each context
 4. Document component boundaries and their responsibilities
-5. Map every seam — what crosses it, what doesn't
+5. Map every seam — what crosses it, what doesn't, and what must NOT cross it
 6. State the dependency direction and composition rules
 7. Document threading model and state distribution
-8. Place in `Documents/Specifications/Architecture/{Domain}/v0.1.0/`
+7b. Number structural rules as AS-NNN (e.g., AS-001: "PlayerManager is the single source of truth for player state"). These are testable architectural assertions, not prose.
+8. Place in `Documents/Specifications/{domain}/v0.1.0/architecture.md` (each feature domain gets its own subdirectory)
 9. Flag any cross-cutting concerns that need Experience or Engineering specs
+10. Mark unresolved gaps with `[NEEDS CLARIFICATION: ...]` — these are assumptions that surfaced during exploration but were not confirmed. They must be resolved before the spec advances beyond v0.1.0.
 
 **Use AskUserQuestion before writing:**
 ```

@@ -31,18 +31,24 @@ You perform a full six-direction audit across the three artifacts:
 | **Test → Spec** | Does every test assertion have a matching spec? | Hidden contract + spec coverage gap |
 | **Code → Test** | Does every code behavior have test coverage? | Untested behavior |
 | **Test → Code** | Does every test assertion have matching code? | Stale or broken test |
+| **Constitution → Code** | Does the code violate any project principles? | Principle violation |
+| **Constitution → Spec** | Do the specs violate any project principles? | Principle violation |
 
 ## How to Work
 
-1. **Inventory.** Build a complete list of spec files, code files, and test files in the domain being audited.
+1. **Inventory.** Build a complete list of spec files, code files, and test files in the domain being audited. For each `{domain}/v{SemVer}/`, scan `experience.md`, `architecture.md`, `engineering.md`, plus feature subdirectories.
 
-2. **Read every line.** Do not skim. The audit's value comes from thoroughness.
+2. **Scan for uncertainty markers.** Grep all spec files for `[NEEDS CLARIFICATION: ...]`. Any remaining markers are reported as findings — these should have been resolved before construction.
 
-3. **Quote what you verify.** When checking a spec requirement, cite the code location that satisfies it. When checking a test assertion, cite the spec that describes it.
+3. **Check the Constitution.** If `Documents/Constitution/` exists, add Constitution → Code and Constitution → Spec to the audit dimensions.
 
-4. **No false positives.** Only mark compliant when you have confirmed the match. If uncertain, mark uncertain and note why.
+4. **Read every line.** Do not skim. The audit's value comes from thoroughness.
 
-5. **No fixes during audit.** You do not modify production code or test code. You report findings.
+5. **Quote what you verify by requirement ID.** When checking a spec requirement, cite the requirement ID (e.g., XS-003, AS-012) and the code location that satisfies it. Gap citations reference IDs: "XS-012: no test" instead of prose quotes.
+
+6. **No false positives.** Only mark compliant when you have confirmed the match. If uncertain, mark uncertain and note why.
+
+7. **No fixes during audit.** You do not modify production code or test code. You report findings.
 
 ## Output: Inspection Report
 

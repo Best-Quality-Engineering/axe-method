@@ -27,22 +27,31 @@ As the construction agent, you are responsible for:
 
 ## How to Work
 
+### Pre-Construction Gate Check
+
+Before any construction begins:
+
+1. **Scan for uncertainty markers.** Grep all spec files in scope for `[NEEDS CLARIFICATION: ...]`. If any remain, construction cannot proceed — report the unresolved markers and route back to Specify.
+2. **Read the Constitution.** If `Documents/Constitution/` exists, read it and verify that implementation choices will comply with project principles. If no Constitution exists, warn but do not block.
+3. **Verify aspect files exist.** For each domain/feature in scope, confirm that `experience.md`, `architecture.md`, and `engineering.md` exist. Missing aspect files are Blocking gaps.
+
 ### Step 1: Read the Blueprints
 
 Before writing any code, build a complete picture of what you're constructing.
 
-1. **Scan `Documents/Specifications/`** for all spec files in the target domain
+1. **Scan `Documents/Specifications/`** for all spec files in the target domain. For each `{domain}/v{SemVer}/`, read `experience.md`, `architecture.md`, `engineering.md`, plus any feature subdirectories.
 2. **Read every spec file.** Do not skim. You are building from these — missing a requirement means missing a feature.
-3. **Build an inventory** of all behaviors, structural decisions, and implementation specs
+3. **Build an inventory by requirement ID** — catalog all XS-NNN (Experience), AS-NNN (Architecture), and ES-NNN (Engineering) requirements
 
 **Use AskUserQuestion to confirm scope:**
 ```
 "I've inventoried the specs for {Domain}:
 
-  Experience behaviors: [N] across [files]
-  Architecture decisions: [N]
-  Engineering specs: [N]
+  Experience requirements (XS): [N] across [files]
+  Architecture requirements (AS): [N]
+  Engineering requirements (ES): [N]
   Toolchain: [identified tools]
+  Constitution: [compliant / warning: absent]
 
 Which area should I construct first?"
   Options: Start from Experience behaviors / Start from Architecture foundations / Start from Engineering specs / Let me choose
@@ -87,7 +96,7 @@ For each spec behavior in sequence:
 
 A behavior is not tested until it has coverage at every level where it is observable. Coverage at one level does not satisfy coverage at another.
 
-1. **Quote the spec requirement** — Cite the exact text you're building against
+1. **Quote the spec requirement by ID** — Cite the requirement ID (e.g., XS-003, AS-012, ES-007) and exact text you're building against. The ID traces the test back to the spec.
 2. **Determine ALL applicable test levels** — UI/E2E, snapshot, unit, integration. A user-facing behavior needs tests at every applicable level, not just one. List them all before writing any test.
 3. **Write tests at every level, starting from the highest priority** — UI tests first (they verify what the user actually experiences and are the highest priority), then snapshot tests (visual regression), then unit tests (logic and contracts). If you find yourself writing unit tests first because they're easier, stop — you're optimizing for your convenience, not for product quality. Each test asserts the spec behavior, not the implementation.
 4. **Run the tests** — They must fail. If they pass, either the behavior already exists or the tests don't assert correctly.
@@ -98,7 +107,8 @@ The test for a correct spec-derived test: **would it fail if the behavior were r
 
 1. **Follow the Architecture spec** — Respect boundaries, seams, layers, dependency direction. Do not take shortcuts across seams.
 2. **Follow the Engineering spec** — Use the prescribed protocols, data structures, UI implementation, and toolchain
-3. **Write the minimum code** to make the failing test pass
+3. **Follow the Constitution** — Verify implementation choices comply with project principles (tech stack, dependency policy, naming law)
+4. **Write the minimum code** to make the failing test pass
 4. **Run the test** — It must pass
 5. **Run the full suite** — Nothing else broke
 6. **Move to the next behavior**

@@ -22,8 +22,8 @@ The Inspection phase evaluates the product against intent, audits all six direct
 "What scope for this inspection?"
   Options:
   - Full audit (all specs, all code, all tests)
-  - Single domain ({Domain})
-  - Single spec type (Experience / Architecture / Engineering)
+  - Single domain ({domain}/v{SemVer}/ and its features)
+  - Single aspect type (all experience.md / architecture.md / engineering.md files)
   - Targeted (specific behaviors or files)
 ```
 
@@ -36,6 +36,19 @@ The audit covers all six directions between the three artifacts:
        ↗↙  ↖↘
      Code ←→ Test
 ```
+
+#### Constitutional Compliance
+
+If a Constitution exists at `Documents/Constitution/`, add two audit dimensions:
+
+- **Constitution → Code** — Does the code violate any project principles (tech stack, dependency policy, naming law)?
+- **Constitution → Spec** — Do the specs violate any project principles?
+
+Add constitutional findings to the gap table alongside the six-direction audit.
+
+#### Uncertainty Marker Detection
+
+Scan all spec files in scope for remaining `[NEEDS CLARIFICATION: ...]` markers. Any found are reported as findings — these should have been resolved before construction.
 
 #### Single Agent (focused inspection)
 

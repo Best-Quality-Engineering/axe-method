@@ -20,7 +20,7 @@ State what you want across three peer spec types:
 - **Architecture** — How the system is structured and how its parts connect — bounded contexts, aggregates, seams, composition, state flow, dependency policy
 - **Engineering** — How things work inside (protocols, APIs, data structures, UI controls, toolchain)
 
-These aren't layers — they're **aspects**. Three views of the same thing at any scale, from a single function up to an entire system. Domain language (DDD's ubiquitous language) sits at the center, keeping all three coherent.
+These aren't layers — they're **aspects**. Three views of the same thing at any scale, from a single function up to an entire system. Domain language (DDD's ubiquitous language) sits at the center, keeping all three coherent. Specs are constrained by the **Constitution** — immutable project principles (tech stack, testing philosophy, architectural constraints, dependency policy) that all specs must comply with.
 
 ```
       Experience
@@ -98,7 +98,7 @@ The contractor doesn't redesign the building on site. The inspector doesn't fix 
 
 ## In Practice
 
-First cycle: state what you know at whatever resolution you have — broad strokes are fine. The point is to get intent *stated* so it becomes something buildable, testable, and refinable. Each subsequent cycle sharpens the specs based on what inspection reveals. You converge on the product you want by iterating on the instructions, not by debugging code.
+First cycle: establish the Constitution (project principles), the Product Vocabulary (domain terms), and then state what you know at whatever resolution you have — broad strokes are fine. The point is to get intent *stated* so it becomes something buildable, testable, and refinable. Each subsequent cycle sharpens the specs based on what inspection reveals. You converge on the product you want by iterating on the instructions, not by debugging code.
 
 ## Installation
 

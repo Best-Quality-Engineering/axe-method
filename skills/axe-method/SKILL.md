@@ -86,7 +86,7 @@ The AXE cycle maps directly to building construction — and the metaphor is not
 
 The construction agent doesn't design — it constructs. It reads the specifications, breaks the work into tasks, sequences them correctly, and delivers. When the output doesn't match the specs, the question is whether the specs were unclear (refine in next Specify) or the construction was wrong (fix in Construction).
 
-**Spec ownership is exclusive.** Each specifier agent owns the spec files in its domain directory (`Documents/Specifications/{Experience|Architecture|Engineering}/`). It is responsible for creating, updating, and organizing those specs across every cycle. No other agent writes to another specifier's directory. The construction agent reads specs — it does not edit them. The inspector agent reports findings — it does not edit specs. When Inspection findings require spec changes, the appropriate specifier agent makes those changes.
+**Spec ownership is exclusive and file-scoped.** Each specifier agent owns its file type across all directories — the experience specifier owns every `experience.md`, the architecture specifier owns every `architecture.md`, the engineering specifier owns every `engineering.md`. Ownership follows the file, not the directory. No specifier writes to another specifier's file type. The construction agent reads specs — it does not edit them. The inspector agent reports findings — it does not edit specs. When Inspection findings require spec changes, the appropriate specifier agent makes those changes.
 
 In building construction, engineering specs don't just describe *what* to build — they specify *with what*. Materials, methods, tools: "14-gauge copper wire, run in EMT conduit" not just "install electrical." The software equivalent is the **toolchain** — build systems, test runners, package managers, linters, formatters, CI/CD pipelines. These are the materials and tools the construction agent needs to execute the specs. A construction agent that doesn't know the toolchain is a crew that shows up without tools.
 
@@ -148,6 +148,30 @@ The ubiquitous language must be captured as a concrete artifact — the **Produc
 - Specs reference vocabulary terms; code implements them
 - The vocabulary is updated when domain understanding evolves, not when code happens to use a different word
 
+### Constitution
+
+The **Constitution** is a versioned artifact at `Documents/Constitution/v{SemVer}/index.md` that captures immutable project principles — the constraints that apply equally to all three spec types. It contains: tech stack, platform targets, testing philosophy, architectural constraints, dependency policy, and naming law.
+
+**Rules:**
+- Built during the first Specify cycle by the orchestrator — alongside the vocabulary, before specifiers begin
+- Greenfield: elicited from the user. Brownfield: extracted from the codebase and validated by the user
+- The orchestrator owns the Constitution — no specifier does (it constrains all three aspects equally)
+- Amendment-tracked with SemVer. Read-only after creation unless the user explicitly amends
+- All specifier agents verify compliance; the constructor checks before building
+- Distinct from specs: specs describe what to build; the Constitution constrains how
+
+The Constitution is not optional, but its absence warns rather than blocks — new projects should not be gated on having principles defined before they can start. If no Constitution exists, the orchestrator surfaces a warning and offers to establish one.
+
+### Uncertainty Markers
+
+When a spec contains an unresolved gap, mark it with `[NEEDS CLARIFICATION: ...]`. This convention makes gaps explicit and machine-detectable.
+
+**Rules:**
+- Presence of any `[NEEDS CLARIFICATION: ...]` marker means the spec is not done
+- The constructor treats remaining markers as **Blocking** gaps — it will not build against a spec that contains them
+- Markers are removed when resolved by the owning specifier
+- Use them during exploration when the user cannot answer yet, or when cross-cutting concerns need resolution from a sibling specifier
+
 ## The Cycle
 
 ### Phase Transition Rule
@@ -163,6 +187,19 @@ State what you know as specifications across all three types, at whatever resolu
 On the first cycle, this is your initial definition. On subsequent cycles, this incorporates findings from Inspection.
 
 When new domain terms are introduced during specification, record them in the Product Vocabulary immediately.
+
+#### Specify Exit Gate
+
+A spec is not ready for Construction until:
+
+1. All three aspect files within each domain/feature are internally coherent
+2. Vocabulary compliance confirmed — all domain terms match the Product Vocabulary
+3. No `[NEEDS CLARIFICATION: ...]` markers remain
+4. Every XS/AS/ES requirement can produce a test assertion
+
+Specifier agents iterate until the gate passes. The exit gate is endemic to the Specify phase — not a separate phase. It is the bar Specify must clear before handoff.
+
+Specs don't need to be perfect — they need to be stated clearly enough that an agent can build from them. The exit gate is a floor, not a ceiling.
 
 ### Phase 2: Construction
 
@@ -194,6 +231,37 @@ Specs describe **behaviors**, not implementation details. A spec should be preci
 2. **The spec is 100% capable of causing you to generate the same code.** If you handed the spec to a competent developer with no access to the existing codebase, they would produce functionally identical code. If they wouldn't, the spec has gaps.
 
 3. **Tests guarantee the implementation conforms to stated spec.** The test suite is the enforcement mechanism. Specs without corresponding tests are aspirational, not enforced. Code without corresponding specs is undocumented behavior that may silently break.
+
+## Requirement Numbering
+
+Every requirement in a spec file has a unique ID with a prefix that identifies its aspect:
+
+| Prefix | Aspect | Lives in | Example |
+|--------|--------|----------|---------|
+| **XS-NNN** | Experience | `experience.md` | "User adjusts volume smoothly, response within 200ms" |
+| **AS-NNN** | Architecture | `architecture.md` | "Volume state flows through PlayerManager, never directly to Player" |
+| **ES-NNN** | Engineering | `engineering.md` | "VolumeSlider, 44pt touch target, debounced at 50ms" |
+
+There is no functional/non-functional split — the prefix *is* the aspect. Quality attributes like performance and responsiveness are part of the experience, not a separate category.
+
+**Numbering rules:**
+- Unique within their spec file (XS-001, AS-001, ES-001, etc.) — numbering resets per file
+- **Testable** — each must produce at least one test assertion
+- **Traceable** — the constructor references the ID when deriving tests; the inspector audits by ID
+
+### Given/When/Then Acceptance Scenarios
+
+Experience spec (XS) requirements use Given/When/Then format for acceptance scenarios:
+
+```markdown
+### XS-003: Volume Adjustment
+
+**Given** playback is active
+**When** the user adjusts volume
+**Then** audio level changes smoothly within 200ms without audible stepping
+```
+
+This format is a natural test generator — each scenario maps directly to an acceptance test. The 200ms lives in the XS requirement because it's what the user experiences.
 
 ## Test Completeness
 
@@ -295,6 +363,9 @@ Specs and inspection reports live in a `Documents` directory at the project root
 
 ```
 Documents/
+├── Constitution/
+│   └── v{SemVer}/
+│       └── index.md
 ├── Inspections/
 │   └── {ISO-8601-compact-timestamp}/
 │       ├── summary.md
@@ -304,24 +375,41 @@ Documents/
 │       └── index.md
 ├── References/
 └── Specifications/
-    ├── Experience/
-    │   └── {Domain}/
-    │       └── v{SemVer}/
-    ├── Architecture/
-    │   └── {Domain}/
-    │       └── v{SemVer}/
-    └── Engineering/
-        └── {Domain}/
-            └── v{SemVer}/
+    ├── product/
+    │   └── v{SemVer}/
+    │       ├── experience.md
+    │       ├── architecture.md
+    │       └── engineering.md
+    └── {domain}/
+        └── v{SemVer}/
+            ├── experience.md
+            ├── architecture.md
+            ├── engineering.md
+            └── {feature}/
+                ├── experience.md
+                ├── architecture.md
+                └── engineering.md
 ```
+
+### Three Levels of Specification
+
+Specs are organized at three levels:
+
+| Level | Path | Purpose |
+|-------|------|---------|
+| **Product** | `product/v{SemVer}/` | The product as a whole — cross-cutting concerns, overall value proposition |
+| **Domain** | `{domain}/v{SemVer}/` | A bounded context or subdomain — versioned with SemVer |
+| **Feature** | `{domain}/v{SemVer}/{feature}/` | A specific feature within a domain — unversioned (inherits domain version) |
+
+Each level contains the same three aspect files: `experience.md`, `architecture.md`, `engineering.md`. This co-locates the full specification triangle within each directory.
 
 ### Domain Directories
 
-Domain directories are named using the **ubiquitous language** — the shared vocabulary of the domain. If domain experts call it "Playback," the directory is `Playback`, not `playback-controller` or `audio-mgmt`.
+Domain directories are named using the **ubiquitous language** — the shared vocabulary of the domain. If domain experts call it "playback," the directory is `playback`, not `playback-controller` or `audio-mgmt`.
 
 ### Version Directories
 
-Each domain is versioned using **SemVer**:
+Domain directories are versioned using **SemVer**. Feature directories within a domain are not independently versioned — they inherit the domain's version.
 
 | Increment | When |
 |-----------|------|
@@ -329,9 +417,13 @@ Each domain is versioned using **SemVer**:
 | **Minor** | Additive change — new behaviors specified without breaking existing ones |
 | **Patch** | Clarification — wording fixes, examples added, no behavioral change |
 
-### Files Within a Version
+### Files Within a Directory
 
-A version directory contains **multiple files**, split by feature or capability. File naming is not prescribed — use whatever names make the content clear. The split should follow natural capability boundaries within the domain.
+Each directory contains up to three files — one per aspect of the specification triangle: `experience.md`, `architecture.md`, `engineering.md`. Spec ownership is file-scoped: the experience specifier owns every `experience.md`, regardless of which directory it lives in.
+
+### Constitution Directory
+
+The Constitution is a first-class versioned artifact at `Documents/Constitution/v{SemVer}/index.md`. It captures immutable project principles that constrain all specs. See **Constitution** under the Specification Triangle for rules.
 
 ### Inspections Directory
 

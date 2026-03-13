@@ -22,16 +22,27 @@ For larger construction efforts, spawn an agent team with the construction agent
 
 ## The Process
 
+### Pre-Construction Gate Check
+
+Before any construction begins:
+
+1. **Scan for uncertainty markers.** Grep all spec files in scope for `[NEEDS CLARIFICATION: ...]`. If any remain, construction cannot proceed — route back to Specify with the list of unresolved markers.
+2. **Read the Constitution.** If `Documents/Constitution/` exists, read it and verify that implementation choices will comply with project principles. If no Constitution exists, warn the user but do not block.
+3. **Verify aspect files exist.** For each domain/feature in scope, confirm that `experience.md`, `architecture.md`, and `engineering.md` exist. Missing aspect files are Blocking gaps.
+
 ### Step 1: Inventory Specs
 
-Use Task (Explore) to scan `Documents/Specifications/` for all spec files in the target domain. Build a complete list of behaviors that need implementation.
+Use Task (Explore) to scan `Documents/Specifications/` for all spec files in the target domain. For each `{domain}/v{SemVer}/`, read `experience.md`, `architecture.md`, `engineering.md`, plus any feature subdirectories. Build a complete inventory of all requirements by ID (XS-NNN, AS-NNN, ES-NNN).
 
 **Use AskUserQuestion:**
 ```
-"I found these specs for {Domain}:
-  - Experience: [list of behaviors]
-  - Architecture: [list of structural decisions]
-  - Engineering: [list of implementation specs]
+"I've inventoried the specs for {Domain}:
+
+  Experience requirements (XS): [N] across [files]
+  Architecture requirements (AS): [N]
+  Engineering requirements (ES): [N]
+  Toolchain: [identified tools]
+  Constitution: [compliant / warning: absent]
 
 Which area should we construct first?"
   Options: Start from Experience behaviors / Start from Engineering specs / Let me choose
@@ -68,8 +79,9 @@ Write the minimum code to make the failing tests pass.
 
 1. **Follow the Architecture spec** — Respect boundaries, seams, layers, dependency direction
 2. **Follow the Engineering spec** — Use the prescribed protocols, data structures, and UI implementation
-3. **Run the test** — It should pass (Green)
-4. **Move to the next behavior**
+3. **Follow the Constitution** — Verify implementation choices comply with project principles (tech stack, dependency policy, naming law)
+4. **Run the test** — It should pass (Green)
+5. **Move to the next behavior**
 
 If a spec is too vague to produce a test, that is a signal — note it for the next Specify iteration. Do not guess; flag the gap.
 

@@ -50,27 +50,52 @@ If `/axe-method:specify` has already established the domain, skip this. Otherwis
 
 Work through each area using a combination of discovery and structured questions. Use TaskCreate to track which areas have been explored.
 
+### 0. Constitutional Compliance
+
+Before exploring, check whether a Constitution exists for this product.
+
+**Use Task (Explore) to scan for:** `Documents/Constitution/` or any file named `constitution.md`, `CONSTITUTION.md`, or similar.
+
+If a Constitution exists, read it and verify that every principle, constraint, and boundary it establishes is respected throughout this Experience spec. The Constitution is non-negotiable — it defines what the product IS and IS NOT. Flag any tension between discovered capabilities and constitutional constraints early.
+
+**Use AskUserQuestion if Constitution exists:**
+```
+"I found a Constitution for this product. I'll verify all Experience decisions against it.
+These constitutional constraints are relevant to experience design:
+  - [list key constraints from Constitution]
+
+Any of these need discussion before we proceed?"
+  Options: These are correct, proceed / Some need clarification / The Constitution is outdated
+```
+
 ### 1. Product Value and Capabilities
 
 This comes first because everything else serves it. The Experience spec must answer: **"Why would someone use this product?"**
 
 **Discover first:** Use Task (Explore) to find README files, marketing copy, app store descriptions, onboarding flows, feature flags, and top-level navigation that reveals what the product offers. Scan for distinct capabilities — the things the product lets users do that they couldn't do before (or couldn't do as well).
 
-**Use AskUserQuestion:**
+**Use AskUserQuestion (Jobs-to-be-Done framing):**
 ```
-"What does this product make possible? What are the key capabilities?"
-  Options: Let me describe what it does / Start from what I found in the codebase / I have a product brief
+"What job is the user hiring this product for? Based on what I found, the product exists to:
+  - [stated purpose from README/marketing]
+
+The core capabilities I see are:
+  - [discovered capabilities]
+
+Here's my read: the primary job-to-be-done is [assertion]. Correct me."
+  Options: That's right / Close but let me refine / That's wrong, let me explain
 ```
 
 For each capability, ask using AskUserQuestion:
 - **"What problem does this solve?"** — What was the user doing before? What was painful or impossible?
 - **"What is novel about this solution?"** — Options: New capability (nothing like it) / Better approach (improves on existing solutions) / Integration (connects things that were separate) / Let me describe
 - **"Who specifically needs this?"** — Options: All users / Specific user type / Power users / Let me describe
+- **"What should this capability NOT do?"** — What is explicitly out of scope? What adjacent functionality does it intentionally avoid? (Negative requirements prevent scope creep and clarify boundaries.)
 
-Probe for completeness:
-- "Are there capabilities the product offers that we haven't named?"
-- "What would users miss most if it were taken away?"
+Probe for completeness using contrast probing and assumption surfacing:
+- **Contrast probe:** "If this capability didn't exist, what would users do instead? Would they use a competitor, a manual workaround, or simply go without?" — reveals whether the capability is essential or nice-to-have
 - "What is the single most compelling reason to use this product?"
+- **Assumption surfacing:** "For the capabilities we've identified, what are we assuming? Consider: user skill level, device availability, network conditions, content availability, usage frequency." — State assumptions as assertions for the user to confirm or challenge
 
 **Classification Guard for Capabilities:**
 - The capability and its value stay in the Experience spec: "Users can discover and join listening sessions with friends in real time", "The product recommends content based on listening patterns"
@@ -90,31 +115,46 @@ For each, I need to understand the behavior:"
   Options: Let's go through them one by one / Add missing actions first / Start fresh
 ```
 
-For each behavior, ask using AskUserQuestion:
+For each behavior, use **Example Mapping** to drive toward concrete scenarios. Ask using AskUserQuestion:
 - **"What triggers this behavior?"** — Options: User gesture / System event / Time-based / Other
-- **"What is the expected outcome?"** — Open-ended
+- **"What is the expected outcome?"** — State your understanding as an assertion: "My read is that [behavior] results in [outcome]. Correct me."
+- **"What are the rules?"** — For this behavior, what must always be true? What constraints apply?
+- **"Give me a concrete example."** — Walk through one specific scenario end-to-end. This naturally generates Given/When/Then acceptance criteria: Given [context], When [action], Then [outcome].
 - **"What happens when it fails?"** — Options: Error message / Retry / Silent fallback / Not applicable
+- **"What should this behavior NOT do?"** — Negative requirements: what adjacent actions does this explicitly avoid?
 
 Probe for completeness:
 - "What happens when [behavior] is already in progress?"
 - "Can the user undo [behavior]?"
+- **Assumption surfacing:** "For [behavior], I'm assuming [stated assumption]. Is that right, or is there a case I'm missing?"
 
 ### 3. States and Transitions
 
-**Discover first:** Use Grep to find state enums, loading indicators, empty states, error handling patterns.
+**Discover first:** Use Grep to find state enums, loading indicators, empty states, error handling patterns. Also scan for domain events — notifications posted, delegate callbacks fired, state change handlers invoked.
 
-**Use AskUserQuestion:**
+**Use Event Storming to discover domain events:** Before mapping states, identify what events happen in this domain. Use AskUserQuestion:
 ```
-"I found these states in the codebase:
-  - [discovered states]
+"Based on the codebase, these are the domain events I found — things that happen:
+  - [discovered events: user actions, system notifications, state changes]
 
-Are these the right states? What's missing?"
-  Options: These are correct / Add more states / Let me explain the state model
+I'm asserting these are the key events. What's missing or wrong?"
+  Options: That covers it / Missing events / Some of these aren't real events
+```
+
+**Use AskUserQuestion for state model:**
+```
+"Given those events, here's the state model I see:
+  - [state] → [event] → [state]
+  - [state] → [event] → [state]
+
+This is my assertion of the state machine. Correct me."
+  Options: That's right / Needs adjustment / Let me describe the state model
 ```
 
 For each state, confirm:
 - **What causes the transition?** — Options: User action / System event / Timeout / Data arrival
 - **What does the user experience in this state?** — Not the UI (that's Engineering), but the experience
+- **Assumption surfacing:** "I'm assuming [state] is reachable from [other state]. Is there a guard condition I'm missing?"
 
 ### 4. Navigation and Flows
 
@@ -133,6 +173,8 @@ Cover:
 - **Major destinations** — The places the user can navigate to
 - **Entry point** — Where the user lands first
 - **Multi-step flows** — Wizards, onboarding, setup sequences
+- **Negative requirements** — Where should navigation NOT go? What destinations are intentionally excluded?
+- **Assumption surfacing** — "I'm assuming the entry point is [X] for all users. Is there a case where it differs (first launch, deep link, notification)?"
 
 ### 5. Feedback
 
@@ -147,9 +189,13 @@ Cover:
 
 **Use AskUserQuestion:**
 ```
-"For the behaviors we've identified, how does the user discover they're available?"
-  Options: Always visible / Context-dependent / Hidden (gesture/long-press) / Let me explain per behavior
+"For the behaviors we've identified, how does the user discover they're available?
+My assertion: [behavior X] is always visible, [behavior Y] is context-dependent. Correct me."
+  Options: That's right / Let me adjust / Let me explain per behavior
 ```
+
+- **Negative requirements:** "Are there behaviors that should be intentionally hidden or restricted? What should NOT be discoverable by default?"
+- **Assumption surfacing:** "I'm assuming first-time users need the same affordances as returning users. Is there progressive disclosure?"
 
 ### 7. Platform Experience Adaptations
 
@@ -376,22 +422,36 @@ Flag these intersections explicitly when you encounter them. Don't assume the Ar
 After exploration, produce a draft Experience spec:
 
 1. **Start with value** — state what the product makes possible and why someone would use it
-2. Organize by capability or feature (one file per natural grouping)
+2. Organize by capability or feature — each feature gets its own subdirectory under `Documents/Specifications/`
 3. For each capability, describe the behaviors — what happens, what users and consumers experience
-4. Include a platform support table if multi-platform
-5. Include accessibility requirements per behavior
-6. Include localization scope and cultural adaptation rules
-7. Include design language principles (not values — those go to Engineering)
-8. Include platform HIG compliance requirements
-9. Include product lifecycle and system event behaviors where applicable
-10. Place in `Documents/Specifications/Experience/{Domain}/v0.1.0/`
-11. Flag any cross-cutting concerns that need Architecture or Engineering specs
+4. **Number each requirement as XS-NNN** (Experience Spec, sequential). This provides stable references across specs and traceability from tests back to requirements.
+5. **Write acceptance scenarios in Given/When/Then format** for each behavior:
+   ```
+   XS-001: Volume adjustment is smooth and continuous
+     Given the user is on the now-playing screen
+     When the user drags the volume slider
+     Then the volume changes smoothly without audible stepping
+   ```
+   These scenarios are the contract between Experience and Engineering — they define "done" without prescribing implementation.
+6. Include a platform support table if multi-platform
+7. Include accessibility requirements per behavior
+8. Include localization scope and cultural adaptation rules
+9. Include design language principles (not values — those go to Engineering)
+10. Include platform HIG compliance requirements
+11. Include product lifecycle and system event behaviors where applicable
+12. Place in `Documents/Specifications/{domain}/v0.1.0/experience.md` — feature-level specs go in subdirectories: `{domain}/v0.1.0/{feature}/experience.md`
+13. Flag any cross-cutting concerns that need Architecture or Engineering specs
+
+**Uncertainty markers:** After drafting, review every requirement. Where exploration left unresolved gaps, mark them with `[NEEDS CLARIFICATION: description of what's unresolved]`. These markers are explicit invitations for follow-up — they prevent ambiguity from silently becoming assumptions. Do not ship a spec with unmarked gaps.
 
 **Use AskUserQuestion before writing:**
 ```
 "Here's the draft Experience spec structure:
-  - [file 1]: covers [behaviors]
-  - [file 2]: covers [behaviors]
+  - Documents/Specifications/{domain}/v0.1.0/experience.md: covers [behaviors], [N] requirements (XS-001 through XS-NNN)
+  - Documents/Specifications/{domain}/v0.1.0/{feature}/experience.md: covers [behaviors], [N] requirements (XS-NNN through XS-NNN)
+
+Each requirement has Given/When/Then acceptance scenarios.
+[N] items marked [NEEDS CLARIFICATION] for follow-up.
 
 Ready to write these drafts?"
   Options: Write them / Let me review the content first / Make changes

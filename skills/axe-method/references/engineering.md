@@ -42,19 +42,37 @@ If `/axe-method:specify` has already established the domain, skip this. Otherwis
 
 ## Phase 2: Structured Exploration
 
-Work through each area using discovery and structured questions.
+### Constitutional Compliance Check
+
+Before exploring implementation areas, check whether the project has a Constitution (typically `Documents/Constitution/` or a top-level `CONSTITUTION.md`). If one exists:
+
+1. Read it using the Read tool
+2. Identify any constitutional constraints that apply to engineering decisions (e.g., dependency restrictions, technology mandates, platform requirements, prohibited patterns)
+3. Keep these constraints active throughout exploration — flag violations immediately rather than discovering them during review
+
+If no Constitution exists, proceed.
+
+### Exploration Approach
+
+Work through each area using discovery, structured questions, and active analysis. For each area, apply these techniques:
+
+- **Assumption Surfacing** — For each area explored, explicitly state what you are assuming. Each assumption either becomes a confirmed requirement or gets marked `[NEEDS CLARIFICATION]`.
+- **Negative Requirements** — For each implementation area, ask what constraints exist: dependency restrictions, things that should NOT be used, patterns that are prohibited.
+
+State your conclusions with reasoning and let the user correct, rather than asking "are these correct?"
 
 ### 1. Protocols and Wire Formats
 
 **Discover first:** Use Grep to find URL constants, HTTP methods, WebSocket frames, UDP packet definitions, binary format parsing.
 
-**Use AskUserQuestion:**
+**Analyze and present conclusions:**
 ```
-"I found these protocol implementations:
-  - [HTTP endpoints, WebSocket connections, UDP broadcasts, etc.]
+"Based on the codebase, this component uses these protocols:
+  - [protocol]: [wire format], [communication pattern] — [evidence from code]
 
-Are these the protocols this component uses?"
-  Options: Yes, those are all of them / There are more / Some of these are wrong / No protocols involved
+I'm assuming [stated assumptions about protocol behavior].
+Constraints I see: [e.g., no third-party networking libraries, must use platform HTTP stack]."
+  Options: Correct / Some corrections needed / There are more / No protocols involved
 ```
 
 For each protocol, use AskUserQuestion:
@@ -62,43 +80,56 @@ For each protocol, use AskUserQuestion:
 - **"What is the communication pattern?"** — Options: Request-response / Long-poll / Push/subscribe / Broadcast / Event stream
 - **"What are the timing constraints?"** — Options: Standard timeouts / Custom intervals / Real-time / Let me specify
 
-**Discover exact structures:** Read existing parser/encoder code to extract field names, types, and formats. Present to user for confirmation.
+**Example Mapping:** For each protocol, provide concrete request/response examples showing the wire format. Read existing parser/encoder code to extract field names, types, and formats. Present actual byte sequences, JSON bodies, or XML structures — not abstractions. This surfaces edge cases in encoding, optional fields, and format variations that abstract descriptions miss.
+
+**Negative Requirements:** Ask what dependencies or approaches are off-limits for protocol implementation (e.g., "no Alamofire", "no raw sockets on watchOS").
 
 ### 2. APIs and Endpoints
 
 **Discover first:** Use Grep/Glob to find route definitions, URL builders, API client methods, response models.
 
-**Use AskUserQuestion:**
+**Analyze and present conclusions:**
 ```
-"I found these API endpoints:
+"I found these API endpoints and reconstructed their contracts:
   - [method] [path] → [response type]
+    Example: [concrete request/response from code or docs]
   - [method] [path] → [response type]
+    Example: [concrete request/response from code or docs]
 
-Are these correct and complete?"
-  Options: Yes / Add missing endpoints / Some need correction / Let me describe the API
+I'm assuming [stated assumptions about API behavior, auth, versioning]."
+  Options: Correct / Add missing endpoints / Some need correction / Let me describe the API
 ```
+
+**Example Mapping:** For each endpoint, include a concrete request/response pair extracted from code, test fixtures, or documentation. Show actual payloads, not just schemas. This catches field naming mismatches, optional vs required confusion, and undocumented behaviors.
 
 For each endpoint, confirm:
-- **Request schema** — Present discovered request types, ask for corrections
-- **Response schema** — Present discovered response types, ask for corrections
+- **Request schema** — Present discovered request types with example, ask for corrections
+- **Response schema** — Present discovered response types with example, ask for corrections
 - **Error handling** — Options: HTTP status codes / Error body / Retry logic / All of the above
+
+**Negative Requirements:** Ask what constraints apply — rate limits, auth requirements, endpoints that must NOT be called in certain states.
 
 ### 3. Data Structures and Algorithms
 
 **Discover first:** Use Task (Explore) to find model definitions, collection types, cache implementations, algorithm implementations.
 
-**Use AskUserQuestion:**
+**Analyze and present conclusions:**
 ```
 "I found these key data structures:
   - [models, collections, caches]
 
-Are these the core data structures?"
-  Options: Yes / Add more / Some need changes / Let me describe them
+Based on their usage, I believe [stated assumptions about ownership, mutability, threading].
+Constraints: [e.g., must be Codable, no Core Data, etc.]"
+  Options: Correct / Add more / Some need changes / Let me describe them
 ```
 
 For lifecycle management:
 - **"How are these created?"** — Options: Parsed from network / User-created / System-provided / Computed
 - **"What caching strategy applies?"** — Options: TTL / LRU / Manual invalidation / No caching / Let me explain
+
+**Assumption Surfacing:** Explicitly state assumptions about thread safety, identity vs equality semantics, and ownership rules. Each becomes a documented requirement or a `[NEEDS CLARIFICATION]` marker.
+
+**Negative Requirements:** Ask what storage or persistence approaches are off-limits (e.g., "no Core Data", "no singletons", "no mutable shared state").
 
 ### 4. UI Implementation
 
@@ -106,14 +137,20 @@ The rendering mechanics that implement the Experience spec's requirements.
 
 **Discover first:** Use Task (Explore) to find custom views, view builders, style constants, color/font definitions, SF Symbol usage, layout code.
 
-**Use AskUserQuestion:**
+**Analyze and present conclusions:**
 ```
 "The Experience spec says the user can [behavior].
 I found this implementation: [discovered view/control].
 
-Is this the right rendering approach?"
-  Options: Yes / It needs changes / Not implemented yet / Let me describe
+This appears to use [platform framework/API] for rendering. I'm assuming the platform provides [specific capability — e.g., 'SwiftUI List with lazy loading', 'UICollectionView compositional layout'].
+
+Platform assumptions to validate:
+  - [assumption 1 — e.g., 'NavigationSplitView available on all target OS versions']
+  - [assumption 2 — e.g., 'SF Symbols 5 available across all platforms']"
+  Options: Correct / It needs changes / Not implemented yet / Let me describe
 ```
+
+**Platform Assumption Testing:** For each UI component, explicitly state what you are assuming the platform provides. Unvalidated platform assumptions become bugs. Check: minimum OS version support, API availability, framework behavior differences across platforms.
 
 For each Experience behavior, use AskUserQuestion to specify the UI:
 - **"What control implements this?"** — Options: [discovered controls] / Different control / Custom implementation
@@ -127,11 +164,13 @@ How should this be rendered?"
   Options: Animation / State change in existing view / Toast/alert / Sound/haptic / Let me describe
 ```
 
+**Negative Requirements:** Ask what UI patterns or frameworks are off-limits (e.g., "no UIKit on macOS", "no third-party UI libraries", "no custom gesture recognizers where system gestures suffice").
+
 ### 5. Testing Infrastructure
 
 **Discover first:** Use Glob to find test files, mock implementations, test fixtures, snapshot references.
 
-**Use AskUserQuestion:**
+**Analyze and present conclusions:**
 ```
 "I found this test coverage:
   - Unit tests: [count/areas]
@@ -139,29 +178,40 @@ How should this be rendered?"
   - Snapshot tests: [count/areas]
   - Mocks: [list]
 
-What testing strategy should the spec prescribe?"
-  Options: Keep current approach / Expand coverage / Change strategy / Let me describe
+I'm assuming the mock strategy is [stated assumption — e.g., 'mock at protocol boundaries only, never mock the manager'].
+Constraints: [e.g., 'no mocking frameworks as dependencies', 'snapshot precision relaxed for CI']."
+  Options: Correct / Expand coverage / Change strategy / Let me describe
 ```
 
 For each area:
 - **"What test types apply?"** — Options: Unit / Integration / Snapshot / UI / End-to-end (multiSelect)
 - **"What mocks are needed?"** — Present discovered mocks, ask what's missing
 
+**Negative Requirements:** Ask what testing approaches are off-limits (e.g., "no mocking the main manager", "no static test helpers in production code", "no test-only compile flags in production targets").
+
 ### 6. Platform-Specific Implementation
 
 **Discover first:** Use Grep to find #if os(), platform-specific targets, conditional compilation, platform availability checks.
 
-**Use AskUserQuestion:**
+**Analyze and present conclusions:**
 ```
 "I found these platform-specific implementations:
   - [platform]: [specific code/controls/APIs]
 
-Is this the intended platform split?"
-  Options: Yes / Needs changes / More platforms needed / Let me describe
+Platform assumptions to validate:
+  - [platform]: assumes [capability] is available — [verified/unverified]
+  - [platform]: assumes [API] behaves the same as [other platform] — [verified/unverified]
+
+Constraints: [e.g., 'watchOS cannot use POSIX sockets', 'tvOS has no touch input']"
+  Options: Correct / Needs changes / More platforms needed / Let me describe
 ```
+
+**Platform Assumption Testing:** For each platform, explicitly state what platform capabilities you are assuming. Check: API availability per platform, framework behavior differences, hardware constraints (no haptics on macOS, no keyboard on tvOS, etc.). Unvalidated assumptions here become platform-specific bugs.
 
 - **"What is shared across platforms?"** — Options: All views / Models + logic only / Nothing / Let me list
 - **"What conditional compilation is needed?"** — Present discovered #if blocks, confirm or correct
+
+**Negative Requirements:** Ask what is explicitly excluded per platform (e.g., "no LSDP on watchOS", "no sidebar on phone", "no focus engine code on non-tvOS").
 
 ## Cross-References
 
@@ -207,8 +257,11 @@ After exploration, produce a draft Engineering spec:
 2. Specify APIs with request/response schemas
 3. Detail UI implementation — controls, layouts, visual specs, accessibility
 4. Include data structures, algorithms, and lifecycle management
-5. Place in `Documents/Specifications/Engineering/{Domain}/v0.1.0/`
-6. Flag any cross-cutting concerns that need Experience or Architecture specs
+5. Place in `Documents/Specifications/{domain}/v0.1.0/engineering.md` — each feature subdirectory contains its own engineering spec alongside its experience and architecture specs
+6. Use ES-NNN numbering for implementation specs (e.g., ES-001, ES-002) to enable cross-referencing from other specs and tracking
+7. Flag any cross-cutting concerns that need Experience or Architecture specs
+
+**Uncertainty markers:** Any unresolved gaps from Phase 2 — unanswered questions, unvalidated platform assumptions, or ambiguous requirements — must be marked in the draft with `[NEEDS CLARIFICATION: description of what's unresolved]`. These markers are not optional polish; they are the mechanism that prevents assumptions from silently becoming implementation decisions.
 
 **Use AskUserQuestion before writing:**
 ```
@@ -216,6 +269,7 @@ After exploration, produce a draft Engineering spec:
   - [file 1]: covers [protocols/APIs]
   - [file 2]: covers [UI implementation]
   - [file 3]: covers [data structures]
+  - [N] items marked [NEEDS CLARIFICATION]
 
 Ready to write these drafts?"
   Options: Write them / Let me review the content first / Make changes

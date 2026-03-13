@@ -50,7 +50,7 @@ When the constructor routes back to Specify because specs are too incomplete to 
 
 ### Step 1: Triage the Gap Report
 
-Read the constructor's gap report. It classifies each gap as Blocking, Underspecified, or Missing, and identifies which spec type (Experience, Architecture, or Engineering) needs work.
+Read the constructor's gap report. It classifies each gap as Blocking, Underspecified, or Missing, and identifies which spec type (Experience, Architecture, or Engineering) needs work. Check whether any gaps stem from unresolved `[NEEDS CLARIFICATION: ...]` markers that should have been resolved before construction began.
 
 **Use AskUserQuestion to prioritize:**
 ```
@@ -136,6 +136,16 @@ The orchestrator's vocabulary responsibility doesn't end at the first cycle:
 
 When a naming conflict arises between specifiers, the orchestrator resolves it — not the specifiers themselves. The vocabulary is the single source of truth; the orchestrator maintains it.
 
+### Step 1b: Establish the Constitution
+
+The Constitution is built during the first Specify cycle, alongside the vocabulary. The Specify orchestrator owns it — not any specifier.
+
+- **Greenfield**: After establishing the vocabulary, elicit project principles from the user: tech stack, platform targets, testing philosophy, architectural constraints, dependency policy, naming rules. Write `Documents/Constitution/v1.0.0/index.md` before delegating to specifiers.
+- **Brownfield**: Extract constitutional principles from the codebase — scan build config (tech stack), test infrastructure (testing philosophy), dependency manifests (dependency policy), architectural patterns (constraints). Present to the user for validation, same as brownfield spec extraction.
+- **Subsequent cycles**: Read the Constitution at phase start. Read-only unless the user explicitly amends. Amendments bump the SemVer version.
+
+The Constitution must be in place before specifiers begin — it constrains their work. If no Constitution exists and the user declines to create one, surface a warning and proceed — the absence warns but does not block.
+
 ### Step 2: Specify — Sequential or Parallel
 
 Choose the approach based on project complexity:
@@ -173,22 +183,56 @@ After all three spec types are explored (sequentially or in parallel):
 2. **Spec triangle alignment** — Do Experience behaviors have Architecture coverage? Does Architecture have Engineering implementation?
 3. **Cross-cutting gaps** — Use AskUserQuestion to present any flagged concerns: "These were flagged during exploration but not addressed — add them now?"
 
+### Step 3b: Verify Exit Gate
+
+Before producing drafts, verify the exit gate criteria:
+
+1. All three aspect files within each domain/feature are internally coherent
+2. Vocabulary compliance confirmed — all domain terms match the Product Vocabulary
+3. No `[NEEDS CLARIFICATION: ...]` markers remain
+4. Every XS/AS/ES requirement can produce a test assertion
+
+**Use AskUserQuestion to present gate results:**
+```
+"Specify exit gate results for {Domain}:
+
+  Coherence: {pass/fail — list issues if any}
+  Vocabulary compliance: {pass/fail — list mismatches if any}
+  Unresolved markers: {count — list if any}
+  Testability: {pass/fail — list untestable requirements if any}
+
+Ready to produce drafts?"
+  Options: Produce drafts / Fix issues first / Review gate details
+```
+
+If the gate fails, route back to the specifier(s) whose files have issues. Iterate until the gate passes.
+
 ### Step 4: Produce Draft Specs
 
 Set up the file organization and write draft specs:
 
 ```
 Documents/
-├── References/
 └── Specifications/
-    ├── Experience/{Domain}/v0.1.0/
-    ├── Architecture/{Domain}/v0.1.0/
-    └── Engineering/{Domain}/v0.1.0/
+    ├── product/v0.1.0/
+    │   ├── experience.md
+    │   ├── architecture.md
+    │   └── engineering.md
+    └── {domain}/v0.1.0/
+        ├── experience.md
+        ├── architecture.md
+        ├── engineering.md
+        └── {feature}/
+            ├── experience.md
+            ├── architecture.md
+            └── engineering.md
 ```
 
 Use AskUserQuestion before writing — present the proposed structure and content summary. Write files only after user approval.
 
 ## After Specify
+
+Specs must pass the exit gate before proceeding to Construction.
 
 With draft specs written, the next step is **Construction** — deriving tests from the specs and implementing code to pass them.
 
