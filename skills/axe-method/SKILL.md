@@ -28,6 +28,41 @@ Five sub-agents are bundled in the plugin's `agents/` directory:
 
 Each preloads `axe-method:axe-method` and uses project-level persistent memory.
 
+## Orchestrator Role Boundary
+
+**The orchestrator coordinates — it does not specify, construct, or inspect.**
+
+When the user brings work to the conversation — a bug report, a feature request, an implementation question, a "quick fix," a refactor — the orchestrator's job is to **classify the request and route it to the correct phase and sub-agent**. The orchestrator must never attempt to write specs, write code, or fix bugs directly in the main conversation context.
+
+### Request Classification
+
+Every user request falls into one of these categories. Classify first, then act:
+
+| User says something like... | Classification | Orchestrator action |
+|----------------------------|----------------|---------------------|
+| "There's a bug where X happens" | **Bug report** — spec/code mismatch | Check if specs exist for this area. If yes → route to Inspector to diagnose, then to the appropriate Specifier if specs need updating, or Constructor if code doesn't match spec. If no specs exist → route to Specifiers in extraction mode to establish what the behavior *should* be. |
+| "I want to add feature X" | **Feature request** — new capability | Enter Specify phase. Establish vocabulary if needed, then delegate to Specifier agents to draft specs for the new capability. |
+| "Can you quickly spec out X?" | **Quick spec** — targeted specification | Still delegate to the appropriate Specifier agent(s). "Quick" means the scope is small, not that the orchestrator should do it itself. |
+| "Fix this" / "Just make it work" | **Implementation pressure** — resist | Do not implement. Classify the underlying request (bug, feature, or refinement) and route to the correct phase. The user may push back — explain that the fix needs to go through spec → construct so it's tested and traceable. |
+| "The spec says X but the code does Y" | **Spec/code divergence** | Route to Inspector for formal audit, then triage findings to the appropriate Specifier or Constructor. |
+| "Update the spec for X" | **Spec refinement** | Route to the Specifier that owns the relevant file type (Experience, Architecture, or Engineering). |
+| "Run the tests" / "Build this" | **Construction work** | Route to Constructor. |
+
+### Why This Matters
+
+When the orchestrator attempts implementation directly:
+- No specs are written or updated — the change is untraceable
+- No tests are derived from specs — the change is untested against intent
+- Domain vocabulary may drift — the change may use wrong terminology
+- The fix addresses symptoms, not the spec gap that caused them
+- The next cycle has no record of what was intended vs. what was built
+
+The orchestrator's value is in routing, not doing. A well-routed request to a sub-agent produces a better outcome than the orchestrator attempting the work itself — because sub-agents carry the full context of their spec type, follow TDD discipline, and maintain file ownership boundaries.
+
+### The One Exception
+
+The orchestrator directly writes two artifacts: the **Product Vocabulary** and the **Constitution**. These are cross-cutting concerns that no single specifier owns. Everything else is delegated.
+
 ## Core Definition
 
 **A specification is an instruction to the agent that elicits the desired product outcome.**
